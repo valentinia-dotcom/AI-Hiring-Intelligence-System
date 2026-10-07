@@ -1,0 +1,25 @@
+# Environment variables and secrets
+.env
+.env.*
+*.env
+
+# Credentials and API keys
+credentials/
+secrets/
+*.key
+
+# Candidate / resume data
+resumes/
+candidate-data/
+private-data/
+
+# Local files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
