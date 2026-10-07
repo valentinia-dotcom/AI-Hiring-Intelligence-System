@@ -6,6 +6,10 @@ The workflow accepts multiple PDF resumes and a job description, evaluates each 
 
 > **Decision-support only:** AI-generated scores should not be the sole basis for hiring or rejection decisions.
 
+**## Workflow Overview
+
+![AI Hiring Intelligence System Workflow](workflow-overview.png)**
+
 ## Features
 
 - Multi-resume PDF processing
