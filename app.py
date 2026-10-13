@@ -22,7 +22,7 @@ if submit:
     if not webhook.startswith("https://"):
         st.error("Use an HTTPS n8n production webhook URL.")
         st.stop()
-    if not jd.strip() or not resumes::
+    if not jd.strip() or not resumes:
         st.warning("Please provide both a job description and a PDF resume.")
         st.stop()
     if resume.size > 10 * 1024 * 1024:
