@@ -33,7 +33,8 @@ if submit:
             response = requests.post(
                 webhook,
                 data={"Job Description": jd, "Position Name": position},
-                files = [("Resume",(file.name, file.getvalue(), "application/pdf"))
+                files = [(
+                        "Resume",(file.name, file.getvalue(), "application/pdf"))
                     for file in resumes]
 
                 response = requests.post(webhook,
