@@ -22,7 +22,7 @@ if submit:
     if not webhook.startswith("https://"):
         st.error("Use an HTTPS n8n production webhook URL.")
         st.stop()
-    if not jd.strip() or resume is None:
+    if not jd.strip() or not resumes::
         st.warning("Please provide both a job description and a PDF resume.")
         st.stop()
     if resume.size > 10 * 1024 * 1024:
@@ -33,9 +33,14 @@ if submit:
             response = requests.post(
                 webhook,
                 data={"Job Description": jd, "Position Name": position},
-                files={"Resume": (resume.name, resume.getvalue(), "application/pdf")},
-                timeout=180,
-            )
+                files = [("Resume",(file.name, file.getvalue(), "application/pdf"))
+                    for file in resumes]
+
+                response = requests.post(webhook,
+                    data={"Job Description": jd,
+                        "Position Name": position},
+                    files=files,
+                    timeout=180))
             response.raise_for_status()
             payload = response.json()
         except requests.exceptions.RequestException:
