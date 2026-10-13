@@ -10,7 +10,7 @@ st.info("Upload a text-based PDF. Candidate data is transmitted to your configur
 with st.form("candidate_analysis"):
     position = st.text_input("Position name (optional)")
     jd = st.text_area("Job description", height=180, placeholder="Paste the role requirements here...")
-    resume = st.file_uploader("Candidate resume (PDF)", type=["pdf"])
+    resumes = st.file_uploader("Upload Candidate Resumes (PDF)", type=["pdf"], accept_multiple_files=True)
     submit = st.form_submit_button("Analyze candidate", type="primary")
 
 if submit:
