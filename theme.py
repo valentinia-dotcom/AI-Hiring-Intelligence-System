@@ -547,7 +547,7 @@ def render_hero():
     st.markdown(
         """
 <section class="aurora-hero">
-    <div class="aurora-eyebrow">POWERED BY GOOGLE GEMINI</div>
+    <div class="aurora-eyebrow">INTELLIGENT RESUME ANALYSIS</div>
     <h2>Turn Resumes Into Clear, Job-Relevant Insights</h2>
     <p>
         Analyze PDF resumes using AI, review job-related
