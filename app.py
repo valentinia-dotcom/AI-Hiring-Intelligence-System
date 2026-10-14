@@ -1,21 +1,14 @@
-"""AI Hiring Intelligence: job-relevant evidence review, per-user Sheets integration."""
+"""AI Hiring Intelligence: resume evidence, private Supabase results, and Excel export."""
 import json
 import hashlib
-import re
-import secrets
 import uuid
 from datetime import datetime, timezone
 
 import fitz
 import pandas as pd
 import streamlit as st
-from cryptography.fernet import Fernet, InvalidToken
 from google import genai
 from google.genai import types
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
-from googleapiclient.discovery import build
 from supabase import create_client
 
 st.set_page_config(page_title="AI Hiring Intelligence", page_icon="📋", layout="wide")
@@ -23,12 +16,23 @@ st.title("📋 AI Hiring Intelligence")
 st.caption("Job-relevant resume evidence for human reviewers — not automated hiring decisions")
 st.warning("Resumes contain sensitive personal information. Obtain appropriate permission, restrict access, and independently verify AI summaries.")
 
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-TAB = "Candidate Results"
 HEADERS = ["Analysis time (UTC)", "Position", "Resume file", "Candidate name (if stated)",
            "Required qualifications found", "Required qualifications unclear/missing", "Relevant experience evidence",
            "Projects evidence", "Education evidence", "Reviewer follow-up questions"]
 MAX_FILES, MAX_BYTES = 20, 10 * 1024 * 1024
+
+# Public-facing column labels -> Supabase table fields. Do not include Run ID in exports.
+DB_FIELDS = {
+    "Position": "position",
+    "Resume file": "resume_file",
+    "Candidate name (if stated)": "candidate_name",
+    "Required qualifications found": "qualifications_found",
+    "Required qualifications unclear/missing": "qualifications_missing",
+    "Relevant experience evidence": "experience_evidence",
+    "Projects evidence": "projects_evidence",
+    "Education evidence": "education_evidence",
+    "Reviewer follow-up questions": "follow_up_questions",
+}
 
 
 def setting(key):
@@ -40,7 +44,8 @@ def setting(key):
 
 
 def supa():
-    # User-scoped Supabase client; never use a service-role key here.
+    # Each Streamlit session has its own authenticated Supabase client.
+    # Never use a service-role key in a user-facing app.
     if "supa" not in st.session_state:
         st.session_state.supa = create_client(setting("SUPABASE_URL"), setting("SUPABASE_ANON_KEY"))
     return st.session_state.supa
@@ -54,80 +59,79 @@ def user_id():
         return None
 
 
-def config_google():
-    return {
-        "web": {
-            "client_id": setting("GOOGLE_CLIENT_ID"),
-            "client_secret": setting("GOOGLE_CLIENT_SECRET"),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "redirect_uris": [setting("GOOGLE_REDIRECT_URI")],
-        }
-    }
+def saved_results(uid):
+    # Supabase RLS is the actual security boundary, not the client-side filter.
+    response = (supa().table("candidate_results")
+                .select("id,user_id,analysis_id,analyzed_at,position,resume_file,candidate_name,"
+                        "qualifications_found,qualifications_missing,experience_evidence,"
+                        "projects_evidence,education_evidence,follow_up_questions")
+                .eq("user_id", uid).order("analyzed_at", desc=True)
+                .limit(1000).execute())
+    return response.data or []
 
 
-def flow():
-    return Flow.from_client_config(
-        config_google(), scopes=SCOPES,
-        redirect_uri=setting("GOOGLE_REDIRECT_URI"),
-        autogenerate_code_verifier=False,
-    )
+def displayed_saved_rows(records):
+    rows = []
+    for record in records:
+        timestamp = record.get("analyzed_at") or ""
+        if timestamp:
+            try:
+                timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                timestamp = timestamp.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            except (ValueError, TypeError):
+                timestamp = str(timestamp)
+        row = {"Analysis time (UTC)": timestamp}
+        row.update({label: record.get(field) or "" for label, field in DB_FIELDS.items()})
+        rows.append(row)
+    return rows
 
 
-def cipher():
-    return Fernet(setting("TOKEN_ENCRYPTION_KEY").encode())
+def safe_for_spreadsheet(value):
+    # Prevent Excel/CSV formula injection from uploaded resume content.
+    value = "" if value is None else str(value)
+    if value.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
 
 
-def profile(uid):
-    result = supa().table("user_settings").select("default_sheet_url,google_refresh_token_encrypted").eq("user_id", uid).execute()
-    return result.data[0] if result.data else {}
+def safe_export_df(df):
+    return df.apply(lambda column: column.map(safe_for_spreadsheet))
 
 
-def save_settings(uid, **fields):
-    supa().table("user_settings").upsert({"user_id": uid, **fields}, on_conflict="user_id").execute()
+def excel_bytes(df):
+    from io import BytesIO
+    data = BytesIO()
+    with pd.ExcelWriter(data, engine="xlsxwriter", datetime_format="yyyy-mm-dd hh:mm:ss") as writer:
+        clean_df = safe_export_df(df)
+        clean_df.to_excel(writer, sheet_name="Candidate Results", index=False)
+        workbook = writer.book
+        ws = writer.sheets["Candidate Results"]
+        title_format = workbook.add_format({"bold": True, "bg_color": "#16324F", "font_color": "#FFFFFF", "text_wrap": True, "valign": "vcenter"})
+        wrap_format = workbook.add_format({"text_wrap": True, "valign": "top"})
+        ws.set_row(0, 36, title_format)
+        ws.set_column(0, 0, 22, wrap_format)
+        ws.set_column(1, 1, 22, wrap_format)
+        ws.set_column(2, 3, 28, wrap_format)
+        ws.set_column(4, len(HEADERS) - 1, 48, wrap_format)
+        ws.freeze_panes(1, 0)
+        ws.autofilter(0, 0, len(clean_df), len(HEADERS) - 1)
+    return data.getvalue()
 
 
-def parse_sheet(value):
-    m = re.search(r"https://docs\.google\.com/spreadsheets/d/([\w-]+)", value.strip())
-    if not m:
-        raise ValueError("Paste a valid Google Sheets URL (docs.google.com/spreadsheets/d/...).")
-    return m.group(1)
-
-
-def google_credentials(uid):
-    saved = profile(uid).get("google_refresh_token_encrypted")
-    if not saved:
-        return None
-    try:
-        token = cipher().decrypt(saved.encode()).decode()
-    except (InvalidToken, ValueError):
-        raise RuntimeError("Saved Google authorization could not be read. Ask the app administrator to check the encryption key.")
-    creds = Credentials(token=None, refresh_token=token, token_uri="https://oauth2.googleapis.com/token",
-                        client_id=setting("GOOGLE_CLIENT_ID"), client_secret=setting("GOOGLE_CLIENT_SECRET"), scopes=SCOPES)
-    creds.refresh(Request())
-    return creds
-
-
-def google_sheets(uid):
-    creds = google_credentials(uid)
-    if not creds:
-        raise ValueError("Connect your Google account before saving results.")
-    return build("sheets", "v4", credentials=creds, cache_discovery=False).spreadsheets()
-
-
-def append_to_sheet(service, spreadsheet_id, rows):
-    meta = service.get(spreadsheetId=spreadsheet_id, fields="sheets.properties.title").execute()
-    if TAB not in {s["properties"]["title"] for s in meta.get("sheets", [])}:
-        service.batchUpdate(spreadsheetId=spreadsheet_id,
-                            body={"requests": [{"addSheet": {"properties": {"title": TAB}}}]}).execute()
-    first = service.values().get(spreadsheetId=spreadsheet_id, range=f"'{TAB}'!A1:K1").execute().get("values", [])
-    if not first:
-        service.values().update(spreadsheetId=spreadsheet_id, range=f"'{TAB}'!A1:K1",
-                                valueInputOption="RAW", body={"values": [HEADERS]}).execute()
-    elif first[0] != HEADERS:
-        raise ValueError("The 'Candidate Results' tab has different column headers. Use a different spreadsheet.")
-    service.values().append(spreadsheetId=spreadsheet_id, range=f"'{TAB}'!A:K",
-                            valueInputOption="RAW", insertDataOption="INSERT_ROWS", body={"values": rows}).execute()
+def save_to_supabase(uid, analysis):
+    payload = []
+    for row in analysis["rows"]:
+        item = {"user_id": uid, "analysis_id": analysis["id"],
+                "analyzed_at": analysis["timestamp"]}
+        item.update({field: row.get(label, "") for label, field in DB_FIELDS.items()})
+        payload.append(item)
+    if not payload:
+        return 0
+    # The unique (user_id, analysis_id, resume_file) index prevents repeated saves.
+    supa().table("candidate_results").upsert(
+        payload, on_conflict="user_id,analysis_id,resume_file"
+    ).execute()
+    return len(payload)
 
 
 def extract_pdf(upload):
@@ -158,48 +162,7 @@ def evaluate(client, job, content):
     return {key: str(data.get(key) or "Not stated") for key in keys}
 
 
-# Google redirects may start a brand-new Streamlit session.
-# Carry an encrypted, short-lived Supabase refresh token inside the OAuth state.
-# It is NEVER sent in plaintext; expire the state after 10 minutes.
-def make_oauth_state(uid, code_verifier):
-    session_response = supa().auth.get_session()
-    session = getattr(session_response, "session", session_response)
-    refresh = getattr(session, "refresh_token", None)
-    if not refresh:
-        raise RuntimeError("Please sign in again before connecting Google.")
-    info = json.dumps({"uid": uid, "refresh": refresh, "nonce": uuid.uuid4().hex,
-                       "code_verifier": code_verifier})
-    return cipher().encrypt(info.encode()).decode()
-
-
-def restore_oauth_session():
-    if "code" not in st.query_params:
-        return None
-    state = st.query_params.get("state")
-    if not state:
-        st.query_params.clear()
-        st.error("Google did not return a valid authorization state. Sign in and retry.")
-        return None
-    try:
-        data = json.loads(cipher().decrypt(state.encode(), ttl=600).decode())
-        if not all(data.get(k) for k in ("uid", "refresh", "nonce")):
-            raise ValueError("Incomplete authorization state.")
-        # This restores Supabase login even if Google redirected to a new
-        # Streamlit websocket/session, without storing credentials in the URL.
-        supa().auth.refresh_session(data["refresh"])
-        uid = user_id()
-        if uid != data["uid"]:
-            raise ValueError("The Google callback belongs to a different user.")
-        return uid
-    except Exception:
-        st.query_params.clear()
-        st.error("Google sign-in expired or could not restore your session. Sign in and try again.")
-        return None
-
-
 uid = user_id()
-if not uid and "code" in st.query_params:
-    uid = restore_oauth_session()
 
 if not uid:
     login_tab, register_tab = st.tabs(["Sign in", "Create account"])
@@ -234,93 +197,33 @@ with st.sidebar:
     st.success("Signed in")
     if st.button("Sign out"):
         supa().auth.sign_out()
-        for k in ["analysis", "saved_run"]:
+        for k in ["analysis", "saved_run", "pending_analysis", "duplicate_notice", "analysis_status"]:
             st.session_state.pop(k, None)
         st.rerun()
 
-# Complete Google OAuth after the Supabase session has been restored.
-if "code" in st.query_params:
-    code = st.query_params.get("code")
-    incoming_state = st.query_params.get("state")
-    try:
-        # Verify state again even if Supabase login survived the redirect.
-        data = json.loads(cipher().decrypt(incoming_state.encode(), ttl=600).decode())
-        if data.get("uid") != uid or not data.get("nonce") or not data.get("code_verifier"):
-            raise ValueError("Authorization did not belong to this signed-in user.")
-        oauth = Flow.from_client_config(
-            config_google(),
-            scopes=SCOPES,
-            state=incoming_state,
-            redirect_uri=setting("GOOGLE_REDIRECT_URI"),
-            code_verifier=data["code_verifier"],
-            autogenerate_code_verifier=False,
-        )
-        oauth.fetch_token(code=code)
-        refresh = oauth.credentials.refresh_token
-        if not refresh:
-            raise RuntimeError("Google did not issue a refresh token. Remove previous app access in your Google account and retry.")
-        save_settings(uid, google_refresh_token_encrypted=cipher().encrypt(refresh.encode()).decode())
-        st.success("Google Sheets connected successfully.")
-    except Exception as exc:
-        st.error(f"Google connection failed: {str(exc)[:220]}")
-    finally:
-        # Clear one-time authorization code from browser URL.
-        st.query_params.clear()
-
-st.subheader("Your Google Sheet")
+st.subheader("My candidate results")
+st.caption("Results are stored in your Supabase account, not in Google Sheets. Only your signed-in user can access them, subject to database Row Level Security.")
 try:
-    current = profile(uid)
+    history = saved_results(uid)
 except Exception as exc:
-    st.error(f"Unable to load account settings. Check the Supabase SQL setup: {str(exc)[:180]}")
-    st.stop()
-
-with st.form("sheet_setting"):
-    sheet_url = st.text_input("Default Google Sheet URL", value=current.get("default_sheet_url") or "",
-                              placeholder="https://docs.google.com/spreadsheets/d/...")
-    save_sheet = st.form_submit_button("Save as my default sheet")
-if save_sheet:
-    try:
-        if sheet_url.strip():
-            parse_sheet(sheet_url)
-        save_settings(uid, default_sheet_url=sheet_url.strip() or None)
-        st.success("Default sheet saved to your account.")
-        current = profile(uid)
-    except Exception as exc:
-        st.error(f"Could not save default sheet: {str(exc)[:180]}")
-
-if current.get("google_refresh_token_encrypted"):
-    st.success("Google account authorized. You can save results to spreadsheets you can edit.")
-    with st.expander("Create a new Google Sheet in my Drive"):
-        new_title = st.text_input("New spreadsheet title", value="AI Hiring - Candidate Results")
-        if st.button("Create sheet and set as default"):
-            try:
-                created = google_sheets(uid).create(body={"properties": {"title": new_title.strip() or "AI Hiring - Candidate Results"}}, fields="spreadsheetId,spreadsheetUrl").execute()
-                created_url = created["spreadsheetUrl"]
-                save_settings(uid, default_sheet_url=created_url)
-                st.success("Spreadsheet created and selected as your default.")
-                st.link_button("Open new sheet", created_url)
-            except Exception as exc:
-                st.error(f"Could not create spreadsheet: {str(exc)[:240]}")
-    if st.button("Disconnect Google Sheets"):
-        save_settings(uid, google_refresh_token_encrypted=None)
-        st.rerun()
+    st.error(f"Could not load saved results: {type(exc).__name__}. Confirm the candidate_results table and RLS policies exist.")
+    history = []
+if history:
+    history_df = pd.DataFrame(displayed_saved_rows(history), columns=HEADERS)
+    st.write(f"**Saved candidate records: {len(history_df)}**")
+    with st.expander("View saved candidate results", expanded=False):
+        st.dataframe(history_df, hide_index=True, use_container_width=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button("Download all saved results (Excel)", excel_bytes(history_df),
+                           file_name="ai_hiring_saved_results.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    with col2:
+        st.download_button("Download all saved results (CSV)",
+                           safe_export_df(history_df).to_csv(index=False).encode("utf-8-sig"),
+                           file_name="ai_hiring_saved_results.csv", mime="text/csv")
 else:
-    if st.button("Connect my Google account"):
-        try:
-            oauth = flow()
-            code_verifier = secrets.token_urlsafe(64)
-            oauth.code_verifier = code_verifier
-            state = make_oauth_state(uid, code_verifier)
-            auth_url, _ = oauth.authorization_url(
-                state=state,
-                access_type="offline",
-                prompt="consent",
-                include_granted_scopes="true",
-            )
-            st.link_button("Continue to Google authorization", auth_url)
-            st.info("Return to this app after allowing Google Sheets access. The link expires after 10 minutes.")
-        except Exception as exc:
-            st.error(f"Unable to start Google authorization: {str(exc)[:200]}")
+    st.info("No saved results yet. Analyze resumes below, then click Save results to my account.")
 
 st.divider()
 
@@ -400,7 +303,7 @@ if st.session_state.analysis_status == "queued":
                         raise ValueError("Insufficient text. Scanned PDFs require OCR.")
                     item = evaluate(client, task["jd"], content)
                     records.append(dict(zip(HEADERS, [
-                        timestamp, run_id, task["position"], filename,
+                        timestamp, task["position"], filename,
                         item["candidate_name"], item["qualifications_found"],
                         item["qualifications_missing_or_unclear"],
                         item["experience_evidence"], item["projects_evidence"],
@@ -412,7 +315,7 @@ if st.session_state.analysis_status == "queued":
                 percentage = round(100 * completed / total)
                 bar.progress(completed / total, text=f"Analyzing resumes: {percentage}% ({completed}/{total})")
             st.session_state.analysis = {
-                "owner": uid, "id": run_id, "rows": records, "errors": errors,
+                "owner": uid, "id": run_id, "timestamp": datetime.now(timezone.utc).isoformat(), "rows": records, "errors": errors,
             }
             st.session_state.pop("saved_run", None)
         except Exception as exc:
@@ -443,22 +346,24 @@ if analysis and analysis.get("owner") == uid:
         df = pd.DataFrame(analysis["rows"])
         st.subheader(f"Candidate evidence ({len(df)})")
         st.dataframe(df, hide_index=True, use_container_width=True)
-        st.download_button("Download CSV", df.to_csv(index=False).encode("utf-8-sig"),
-                           file_name="candidate_evidence.csv", mime="text/csv")
+        cols = st.columns(2)
+        with cols[0]:
+            st.download_button("Download current results (Excel)", excel_bytes(df),
+                               file_name="candidate_evidence.xlsx",
+                               mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        with cols[1]:
+            st.download_button("Download current results (CSV)",
+                               safe_export_df(df).to_csv(index=False).encode("utf-8-sig"),
+                               file_name="candidate_evidence.csv", mime="text/csv")
         st.caption("AI summaries require source verification and human review; they are not rankings or hiring decisions.")
         if st.session_state.get("saved_run") == analysis["id"]:
-            st.success("This analysis was saved during this session. Further saves disabled to avoid duplicates.")
-        elif st.button("Append these results to my default Google Sheet", type="primary"):
+            st.success("This analysis was saved to your account. Repeated saves are disabled.")
+        elif st.button("Save results to my account", type="primary"):
             try:
-                url = profile(uid).get("default_sheet_url")
-                if not url:
-                    raise ValueError("First save your default Google Sheet URL above.")
-                sheets = google_sheets(uid)
-                append_to_sheet(sheets, parse_sheet(url), [[str(row.get(k, "")) for k in HEADERS] for row in analysis["rows"]])
+                count = save_to_supabase(uid, analysis)
                 st.session_state.saved_run = analysis["id"]
-                st.success("Results appended to your Google Sheet.")
+                st.success(f"Saved {count} candidate result(s) privately to Supabase.")
+                st.rerun()
             except Exception as exc:
-                st.error(f"Unable to save: {type(exc).__name__}: {str(exc)[:260]}")
-        sheet = profile(uid).get("default_sheet_url")
-        if sheet:
-            st.link_button("Open my default Google Sheet", sheet)
+                st.error(f"Save failed: {type(exc).__name__}: {str(exc)[:230]}")
+
