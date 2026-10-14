@@ -1,8 +1,6 @@
-
 """
 AI Hiring Intelligence System
 Midnight Aurora — Frontend Theme
-
 Visual styling only.
 Does not modify Gemini, Supabase, authentication,
 candidate history, or Excel exports.
@@ -10,10 +8,7 @@ candidate history, or Excel exports.
 
 import base64
 from textwrap import dedent
-
 import streamlit as st
-
-
 COLORS = {
     "background": "#070D1D",
     "surface": "#101A33",
@@ -482,26 +477,17 @@ def render_brand():
 # --------------------------------------------------
 
 def render_hero():
-    """Display the welcome panel for signed-out users."""
+    """Display the branded welcome panel without Markdown code-block parsing."""
 
-    html = """
-    <section class="aurora-hero">
-        <div class="aurora-eyebrow">
-            INTELLIGENT RESUME ANALYSIS
-        </div>
-
-        <h2>
-            Turn Resumes Into Clear,
-            Job-Relevant Insights
-        </h2>
-
-        <p>
-            Analyze PDF resumes using AI, review
-            job-related evidence, securely save
-            candidate history, and export Excel reports.
-            Built to support informed human review.
-        </p>
-    </section>
-    """
-
-    st.markdown(dedent(html), unsafe_allow_html=True)
+    # Keep the HTML tags on one logical line so Streamlit's Markdown
+    # renderer cannot interpret indented lines as a code block.
+    hero_html = (
+        '<section class="aurora-hero">'
+        '<div class="aurora-eyebrow">INTELLIGENT RESUME ANALYSIS</div>'
+        '<h2>Turn Resumes Into Clear, Job-Relevant Insights</h2>'
+        '<p>Analyze PDF resumes using AI, review job-related evidence, '
+        'securely save candidate history, and export Excel reports. '
+        'Built to support informed human review.</p>'
+        '</section>'
+    )
+    st.markdown(hero_html, unsafe_allow_html=True)
