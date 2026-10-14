@@ -3,7 +3,6 @@ import json
 import re
 import uuid
 from datetime import datetime, timezone
-from urllib.parse import urlencode
 
 import fitz
 import pandas as pd
@@ -153,8 +152,48 @@ def evaluate(client, job, content):
     return {key: str(data.get(key) or "Not stated") for key in keys}
 
 
-# Authentication
+# Google redirects may start a brand-new Streamlit session.
+# Carry an encrypted, short-lived Supabase refresh token inside the OAuth state.
+# It is NEVER sent in plaintext; expire the state after 10 minutes.
+def make_oauth_state(uid):
+    session_response = supa().auth.get_session()
+    session = getattr(session_response, "session", session_response)
+    refresh = getattr(session, "refresh_token", None)
+    if not refresh:
+        raise RuntimeError("Please sign in again before connecting Google.")
+    info = json.dumps({"uid": uid, "refresh": refresh, "nonce": uuid.uuid4().hex})
+    return cipher().encrypt(info.encode()).decode()
+
+
+def restore_oauth_session():
+    if "code" not in st.query_params:
+        return None
+    state = st.query_params.get("state")
+    if not state:
+        st.query_params.clear()
+        st.error("Google did not return a valid authorization state. Sign in and retry.")
+        return None
+    try:
+        data = json.loads(cipher().decrypt(state.encode(), ttl=600).decode())
+        if not all(data.get(k) for k in ("uid", "refresh", "nonce")):
+            raise ValueError("Incomplete authorization state.")
+        # This restores Supabase login even if Google redirected to a new
+        # Streamlit websocket/session, without storing credentials in the URL.
+        supa().auth.refresh_session(data["refresh"])
+        uid = user_id()
+        if uid != data["uid"]:
+            raise ValueError("The Google callback belongs to a different user.")
+        return uid
+    except Exception:
+        st.query_params.clear()
+        st.error("Google sign-in expired or could not restore your session. Sign in and try again.")
+        return None
+
+
 uid = user_id()
+if not uid and "code" in st.query_params:
+    uid = restore_oauth_session()
+
 if not uid:
     login_tab, register_tab = st.tabs(["Sign in", "Create account"])
     with login_tab:
@@ -188,31 +227,36 @@ with st.sidebar:
     st.success("Signed in")
     if st.button("Sign out"):
         supa().auth.sign_out()
-        for k in ["analysis", "saved_run", "oauth_state", "oauth_uid"]:
+        for k in ["analysis", "saved_run"]:
             st.session_state.pop(k, None)
         st.rerun()
 
-# OAuth callback: match CSRF state AND signed-in Supabase user
+# Complete Google OAuth after the Supabase session has been restored.
 if "code" in st.query_params:
     code = st.query_params.get("code")
     incoming_state = st.query_params.get("state")
-    if incoming_state and incoming_state == st.session_state.get("oauth_state") and uid == st.session_state.get("oauth_uid"):
-        try:
-            oauth = flow()
-            oauth.fetch_token(code=code)
-            refresh = oauth.credentials.refresh_token
-            if not refresh:
-                raise RuntimeError("Google did not return a refresh token. Revoke prior app access and reconnect.")
-            encrypted = cipher().encrypt(refresh.encode()).decode()
-            save_settings(uid, google_refresh_token_encrypted=encrypted)
-            st.success("Google Sheets connected successfully.")
-        except Exception as exc:
-            st.error(f"Google connection failed: {str(exc)[:220]}")
-    else:
-        st.error("Google authorization state did not match this session. Try connecting again.")
-    st.query_params.clear()
-    st.session_state.pop("oauth_state", None)
-    st.session_state.pop("oauth_uid", None)
+    try:
+        # Verify state again even if Supabase login survived the redirect.
+        data = json.loads(cipher().decrypt(incoming_state.encode(), ttl=600).decode())
+        if data.get("uid") != uid or not data.get("nonce"):
+            raise ValueError("Authorization did not belong to this signed-in user.")
+        oauth = Flow.from_client_config(
+            config_google(),
+            scopes=SCOPES,
+            state=incoming_state,
+            redirect_uri=setting("GOOGLE_REDIRECT_URI"),
+        )
+        oauth.fetch_token(code=code)
+        refresh = oauth.credentials.refresh_token
+        if not refresh:
+            raise RuntimeError("Google did not issue a refresh token. Remove previous app access in your Google account and retry.")
+        save_settings(uid, google_refresh_token_encrypted=cipher().encrypt(refresh.encode()).decode())
+        st.success("Google Sheets connected successfully.")
+    except Exception as exc:
+        st.error(f"Google connection failed: {str(exc)[:220]}")
+    finally:
+        # Clear one-time authorization code from browser URL.
+        st.query_params.clear()
 
 st.subheader("Your Google Sheet")
 try:
@@ -253,12 +297,19 @@ if current.get("google_refresh_token_encrypted"):
         st.rerun()
 else:
     if st.button("Connect my Google account"):
-        oauth = flow()
-        auth_url, state = oauth.authorization_url(access_type="offline", prompt="consent", include_granted_scopes="true")
-        st.session_state.oauth_state = state
-        st.session_state.oauth_uid = uid
-        st.link_button("Continue to Google authorization", auth_url)
-        st.info("Click the authorization button above to continue.")
+        try:
+            oauth = flow()
+            state = make_oauth_state(uid)
+            auth_url, _ = oauth.authorization_url(
+                state=state,
+                access_type="offline",
+                prompt="consent",
+                include_granted_scopes="true",
+            )
+            st.link_button("Continue to Google authorization", auth_url)
+            st.info("Return to this app after allowing Google Sheets access. The link expires after 10 minutes.")
+        except Exception as exc:
+            st.error(f"Unable to start Google authorization: {str(exc)[:200]}")
 
 st.divider()
 with st.form("resumes"):
