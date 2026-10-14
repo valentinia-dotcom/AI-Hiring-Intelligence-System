@@ -12,7 +12,7 @@ from google.genai import types
 from supabase import create_client
 
 st.set_page_config(page_title="AI Hiring Intelligence", page_icon="📋", layout="wide")
-from theme import apply_theme, render_brand
+from theme import apply_theme, render_brand, render_hero
 apply_theme()
 render_brand()
 st.caption("Job-relevant resume evidence for human reviewers — not automated hiring decisions")
@@ -168,6 +168,7 @@ uid = user_id()
 
 
 if not uid:
+    render_hero()
     st.markdown(
         """
         <style>
