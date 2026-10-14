@@ -1,3 +1,6 @@
+
+
+
 """
 AI Hiring Intelligence System
 Midnight Aurora — Frontend Theme
@@ -74,18 +77,16 @@ def apply_theme():
                      Arial, sans-serif;
     }
 
-    /* Fixed, low-contrast aurora glows plus fine curved light trails.
-       The lines are decorative only and stay behind all Streamlit content. */
+    /* SAMPLE 1 — Aurora Glow: one clean sweeping upper-right ribbon.
+       It is painted behind the UI, not as an interactive overlay. */
     [data-testid="stApp"] {
         background-color: #070D1D;
         background-image:
-            url("__AURORA_WAVES__"),
-            radial-gradient(ellipse 55% 42% at 94% 5%, rgba(118, 73, 247, 0.24), transparent 78%),
-            radial-gradient(ellipse 42% 50% at 0% 62%, rgba(30, 127, 228, 0.16), transparent 82%),
-            radial-gradient(ellipse 37% 36% at 74% 96%, rgba(74, 42, 166, 0.11), transparent 80%),
-            linear-gradient(155deg, #0A132B 0%, #070D1D 58%, #080F22 100%);
-        background-position: center, center, center, center, center;
-        background-size: cover;
+            url("__AURORA_RIBBON__"),
+            radial-gradient(ellipse 45% 36% at 100% 0%, rgba(116,54,220,0.20), transparent 80%),
+            linear-gradient(155deg, #0B142C 0%, #070D1D 60%, #091229 100%);
+        background-position: center top, center, center;
+        background-size: cover, cover, cover;
         background-repeat: no-repeat;
         background-attachment: fixed;
     }
@@ -121,13 +122,15 @@ def apply_theme():
 
     /* SIDEBAR */
 
+    /* A softer blue ribbon sits behind the bottom of the sidebar. */
     [data-testid="stSidebar"] {
-        background:
-            linear-gradient(
-                180deg,
-                #101A34,
-                #080F20
-            );
+        background-color: #09162E;
+        background-image:
+            url("__SIDEBAR_RIBBON__"),
+            linear-gradient(180deg, #0E1934, #081226);
+        background-size: 100% auto, cover;
+        background-position: left bottom, center;
+        background-repeat: no-repeat;
         border-right: 1px solid #29395E;
     }
 
@@ -449,26 +452,41 @@ def apply_theme():
     </style>
     """
 
-    # SVG is embedded as a CSS background, not a Streamlit widget or HTML overlay.
-    # This avoids blocking clicks and scrolling in forms and tables.
-    waves_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+    # Embedded vector backgrounds scale crisply. No external image assets or
+    # additional requirements; existing official PNG logo stays untouched.
+    ribbon_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 950" preserveAspectRatio="xMidYMid slice">
       <defs>
-        <linearGradient id="a" x1="0" y1="1" x2="1" y2="0">
-          <stop stop-color="#38A8FF" stop-opacity="0.08"/>
-          <stop offset="0.55" stop-color="#7856F7" stop-opacity="0.12"/>
-          <stop offset="1" stop-color="#A044F7" stop-opacity="0"/>
+        <linearGradient id="ribbon" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#0053B8" stop-opacity="0"/>
+          <stop offset="0.48" stop-color="#1554EA" stop-opacity="0.15"/>
+          <stop offset="0.78" stop-color="#7345E9" stop-opacity="0.45"/>
+          <stop offset="1" stop-color="#B65BFF" stop-opacity="0.64"/>
+        </linearGradient>
+        <linearGradient id="edge" x1="0" y1="1" x2="1" y2="0">
+          <stop stop-color="#38A8FF" stop-opacity="0"/>
+          <stop offset="0.6" stop-color="#287CFF" stop-opacity="0.28"/>
+          <stop offset="1" stop-color="#B772FF" stop-opacity="0.72"/>
         </linearGradient>
       </defs>
-      <g fill="none" stroke="url(#a)" stroke-width="1.6">
-        <path d="M-180 790 C200 450 380 1100 800 770 S1380 390 1780 520"/>
-        <path d="M-180 817 C200 477 380 1127 800 797 S1380 417 1780 547"/>
-        <path d="M-180 844 C200 504 380 1154 800 824 S1380 444 1780 574"/>
-        <path d="M-180 871 C200 531 380 1181 800 851 S1380 471 1780 601"/>
-        <path d="M-180 898 C200 558 380 1208 800 878 S1380 498 1780 628"/>
-      </g>
+      <!-- Broad curved band along the upper-right edge, like Sample 1. -->
+      <path d="M650 -180 L1760 -180 L1760 45 C1450 -40 1350 40 1190 115 C1005 200 890 222 650 252 C1000 172 1150 82 1280 -30 Z" fill="url(#ribbon)"/>
+      <path d="M570 270 C880 260 1060 170 1260 35 C1390 -55 1600 -12 1770 48" stroke="url(#edge)" stroke-width="3" fill="none"/>
+      <path d="M620 288 C940 256 1080 182 1270 62 C1460 -50 1630 20 1770 80" stroke="url(#edge)" stroke-width="1" opacity="0.32" fill="none"/>
     </svg>"""
-    wave_uri = "data:image/svg+xml;base64," + base64.b64encode(waves_svg.encode("utf-8")).decode("ascii")
-    css = css.replace("__AURORA_WAVES__", wave_uri)
+    sidebar_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 650">
+      <defs>
+        <linearGradient id="blue" x1="0" y1="1" x2="1" y2="0">
+          <stop stop-color="#0A70E5" stop-opacity="0.38"/>
+          <stop offset="0.65" stop-color="#1768D7" stop-opacity="0.20"/>
+          <stop offset="1" stop-color="#1563E7" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="M-60 650 L-60 460 C52 330 150 405 350 292 L350 650Z" fill="url(#blue)"/>
+      <path d="M-20 474 C102 320 194 415 370 292" stroke="#39A8FF" stroke-opacity="0.32" stroke-width="2" fill="none"/>
+    </svg>"""
+    ribbon_uri = "data:image/svg+xml;base64," + base64.b64encode(ribbon_svg.encode("utf-8")).decode("ascii")
+    sidebar_uri = "data:image/svg+xml;base64," + base64.b64encode(sidebar_svg.encode("utf-8")).decode("ascii")
+    css = css.replace("__AURORA_RIBBON__", ribbon_uri).replace("__SIDEBAR_RIBBON__", sidebar_uri)
     st.markdown(dedent(css), unsafe_allow_html=True)
 
 
