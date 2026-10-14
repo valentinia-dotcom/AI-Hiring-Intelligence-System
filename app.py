@@ -1,6 +1,7 @@
 """AI Hiring Intelligence: job-relevant evidence review, per-user Sheets integration."""
 import json
 import re
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -65,7 +66,11 @@ def config_google():
 
 
 def flow():
-    return Flow.from_client_config(config_google(), scopes=SCOPES, redirect_uri=setting("GOOGLE_REDIRECT_URI"))
+    return Flow.from_client_config(
+        config_google(), scopes=SCOPES,
+        redirect_uri=setting("GOOGLE_REDIRECT_URI"),
+        autogenerate_code_verifier=False,
+    )
 
 
 def cipher():
@@ -155,13 +160,14 @@ def evaluate(client, job, content):
 # Google redirects may start a brand-new Streamlit session.
 # Carry an encrypted, short-lived Supabase refresh token inside the OAuth state.
 # It is NEVER sent in plaintext; expire the state after 10 minutes.
-def make_oauth_state(uid):
+def make_oauth_state(uid, code_verifier):
     session_response = supa().auth.get_session()
     session = getattr(session_response, "session", session_response)
     refresh = getattr(session, "refresh_token", None)
     if not refresh:
         raise RuntimeError("Please sign in again before connecting Google.")
-    info = json.dumps({"uid": uid, "refresh": refresh, "nonce": uuid.uuid4().hex})
+    info = json.dumps({"uid": uid, "refresh": refresh, "nonce": uuid.uuid4().hex,
+                       "code_verifier": code_verifier})
     return cipher().encrypt(info.encode()).decode()
 
 
@@ -238,13 +244,15 @@ if "code" in st.query_params:
     try:
         # Verify state again even if Supabase login survived the redirect.
         data = json.loads(cipher().decrypt(incoming_state.encode(), ttl=600).decode())
-        if data.get("uid") != uid or not data.get("nonce"):
+        if data.get("uid") != uid or not data.get("nonce") or not data.get("code_verifier"):
             raise ValueError("Authorization did not belong to this signed-in user.")
         oauth = Flow.from_client_config(
             config_google(),
             scopes=SCOPES,
             state=incoming_state,
             redirect_uri=setting("GOOGLE_REDIRECT_URI"),
+            code_verifier=data["code_verifier"],
+            autogenerate_code_verifier=False,
         )
         oauth.fetch_token(code=code)
         refresh = oauth.credentials.refresh_token
@@ -299,7 +307,9 @@ else:
     if st.button("Connect my Google account"):
         try:
             oauth = flow()
-            state = make_oauth_state(uid)
+            code_verifier = secrets.token_urlsafe(64)
+            oauth.code_verifier = code_verifier
+            state = make_oauth_state(uid, code_verifier)
             auth_url, _ = oauth.authorization_url(
                 state=state,
                 access_type="offline",
