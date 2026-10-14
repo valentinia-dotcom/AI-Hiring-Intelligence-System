@@ -442,7 +442,7 @@ if analysis and analysis.get("owner") == uid:
     if analysis["rows"]:
         df = pd.DataFrame(analysis["rows"])
         st.subheader(f"Candidate evidence ({len(df)})")
-        st.dataframe(df.drop(columns=["Run ID"]), hide_index=True, use_container_width=True)
+        st.dataframe(df, hide_index=True, use_container_width=True)
         st.download_button("Download CSV", df.to_csv(index=False).encode("utf-8-sig"),
                            file_name="candidate_evidence.csv", mime="text/csv")
         st.caption("AI summaries require source verification and human review; they are not rankings or hiring decisions.")
