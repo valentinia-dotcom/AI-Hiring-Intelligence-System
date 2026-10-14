@@ -121,7 +121,7 @@ def apply_theme():
 
     .block-container {
         max-width: 1450px;
-        padding-top: 1.8rem;
+        padding-top: 5rem !important;
         padding-bottom: 4rem;
     }
 
