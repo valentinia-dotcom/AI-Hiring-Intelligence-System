@@ -1,5 +1,6 @@
 
 
+
 """
 AI Hiring Intelligence System
 Midnight Aurora — Frontend Theme
@@ -93,9 +94,16 @@ def apply_theme():
     }
 
     .block-container {
-        max-width: 1450px;
-        padding-top: 5rem !important;
-        padding-bottom: 4rem;
+        width: 100%;
+        max-width: 1200px;
+        box-sizing: border-box;
+        padding: 5rem clamp(1rem, 3vw, 2rem) 4rem !important;
+        margin-inline: auto;
+    }
+
+    /* Prevent text or widgets from stretching the entire app horizontally. */
+    [data-testid="stAppViewContainer"] {
+        overflow-x: clip;
     }
 
     /* TYPOGRAPHY */
@@ -292,7 +300,13 @@ def apply_theme():
         display: flex;
         align-items: center;
         gap: 16px;
+        max-width: 100%;
+        min-width: 0;
         margin-bottom: 1.5rem;
+    }
+
+    .aurora-brand > div:last-child {
+        min-width: 0;
     }
 
     /* Show the icon area of the original wide PNG, hiding its dark wordmark.
@@ -314,6 +328,7 @@ def apply_theme():
         font-weight: 750;
         line-height: 1.2;
         letter-spacing: -0.04em;
+        overflow-wrap: anywhere;
         background:
             linear-gradient(
                 100deg,
@@ -337,7 +352,11 @@ def apply_theme():
     .aurora-hero {
         position: relative;
         overflow: hidden;
-        padding: 2.2rem;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: clamp(1.25rem, 3vw, 2rem);
         margin: 1.2rem 0 2rem;
 
         background:
@@ -367,25 +386,42 @@ def apply_theme():
     }
 
     .aurora-hero h2 {
-        font-size: clamp(
-            1.6rem, 2.8vw, 2.4rem
-        );
-        line-height: 1.2;
-        margin-bottom: 0.9rem;
+        font-size: clamp(1.35rem, 2.5vw, 2rem) !important;
+        line-height: 1.25 !important;
+        letter-spacing: -0.02em;
+        max-width: 780px;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        margin: 0 0 0.9rem;
     }
 
     .aurora-hero p {
+        font-size: clamp(0.95rem, 1.2vw, 1.05rem) !important;
         color: #B5C2DF;
-        line-height: 1.75;
+        line-height: 1.65;
         max-width: 740px;
-        margin-bottom: 0;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        margin: 0;
     }
 
     /* RESPONSIVE */
 
     @media (max-width: 768px) {
         .block-container {
-            padding: 3rem 0.8rem 3rem;
+            padding: 4.25rem 1rem 3rem !important;
+        }
+
+        .aurora-brand {
+            gap: 10px;
+        }
+
+        .aurora-brand-name {
+            font-size: clamp(1.1rem, 5vw, 1.55rem);
+        }
+
+        .aurora-hero h2 {
+            font-size: clamp(1.25rem, 5vw, 1.6rem) !important;
         }
 
         .aurora-hero {
