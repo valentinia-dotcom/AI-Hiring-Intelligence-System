@@ -25,7 +25,7 @@ st.warning("Resumes contain sensitive personal information. Obtain appropriate p
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 TAB = "Candidate Results"
-HEADERS = ["Analysis time (UTC)", "Run ID", "Position", "Resume file", "Candidate name (if stated)",
+HEADERS = ["Analysis time (UTC)", "Position", "Resume file", "Candidate name (if stated)",
            "Required qualifications found", "Required qualifications unclear/missing", "Relevant experience evidence",
            "Projects evidence", "Education evidence", "Reviewer follow-up questions"]
 MAX_FILES, MAX_BYTES = 20, 10 * 1024 * 1024
