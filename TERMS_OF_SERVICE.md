@@ -1,285 +1,274 @@
-# Privacy Policy — AI Hiring Intelligence
+Terms of Service — AI Hiring Intelligence
 
-**Effective Date:** October 15, 2026  
-**Application Name:** AI Hiring Intelligence  
-**Developed and Operated By:** Valentinia Selchezstintinia  
-**Contact Email:** valentina339@gmail.com  
-**Application Website:** https://ai-hiring-intelligence-system.streamlit.app/
+Effective Date: October 15, 2026
+Application Name: AI Hiring Intelligence
+Developed and Operated By: Valentinia Selchezstintinia
+Contact Email: valentina339@gmail.com
+Application Website: https://ai-hiring-intelligence-system.streamlit.app/
 
-## 1. Introduction
+1. Introduction
 
-Welcome to AI Hiring Intelligence, an AI-assisted resume analysis application developed and operated by Valentinia Selchezstintinia.
+Welcome to AI Hiring Intelligence, an artificial intelligence-assisted resume evaluation application developed and operated by Valentinia Selchezstintinia.
 
-We are committed to respecting user privacy and protecting personal information. This Privacy Policy explains how information is collected, used, processed, stored, shared, and managed when users access the Application.
+These Terms of Service ("Terms") govern your access to and use of AI Hiring Intelligence ("the Application", "we", "our", or "us").
 
-AI Hiring Intelligence helps recruiters, hiring professionals, and other authorized users review job-related information from candidate resumes using artificial intelligence.
+By registering for an account, accessing, or using the Application, you agree to these Terms and acknowledge our Privacy Policy.
 
-The Application is a decision-support tool. It does not independently make final hiring or employment decisions.
+If you do not agree with these Terms, please discontinue using the Application.
 
-By using the Application, users acknowledge the data-processing practices described in this policy.
+2. Description of the Application
 
-## 2. Information We Collect and Process
+AI Hiring Intelligence is designed to assist recruiters, hiring professionals, and other authorized users in reviewing job-related information contained in candidate resumes.
 
-Depending on the features used, AI Hiring Intelligence may process the following information.
+The Application provides features including:
 
-**Account Information**
-- Email addresses provided during registration.
-- User account identifiers.
-- Authentication information managed by Supabase.
-- Account preferences and application settings.
+Uploading and analyzing multiple PDF resumes.
 
-**Candidate and Resume Information**
-- Candidate names and contact information contained in resumes.
-- Educational qualifications.
-- Employment history and professional experience.
-- Technical and professional skills.
-- Projects, certifications, and achievements.
-- Other information voluntarily included in uploaded resumes.
+Comparing resumes against user-provided job descriptions.
 
-**Job-Related Information**
-- Job titles and position names.
-- Job descriptions.
-- Required qualifications and technical skills.
-- Professional experience requirements.
+Generating AI-assisted summaries using Google Gemini.
 
-**AI-Generated Information**
-- Summaries of job-related qualifications.
-- Evidence of relevant work experience.
-- Skills and qualifications requiring clarification.
-- Education and project summaries.
-- Suggested questions for human reviewers.
+Identifying evidence of relevant skills, experience, education, and projects.
 
-**Google Account Information**
-- Google OAuth authorization information.
-- Encrypted authorization tokens.
-- Google Sheets URLs and spreadsheet identifiers.
-- Spreadsheet information required to perform user-authorized operations.
+Highlighting missing or unclear job-related qualifications.
 
-**Technical Information**
+Generating suggested follow-up questions for human reviewers.
 
-Application infrastructure and service providers may process operational information, including error logs and security-related records.
+Downloading analysis results in CSV format.
 
-## 3. How We Use Information
+Connecting individual Google accounts through Google OAuth.
 
-Information is processed to:
+Creating or updating authorized Google Sheets.
 
-1. Create and authenticate user accounts.
-2. Provide secure access to application features.
-3. Analyze uploaded resumes against job descriptions.
-4. Generate AI-assisted summaries of job-related information.
-5. Present candidate evidence for human review.
-6. Create or update authorized Google Sheets.
-7. Save user-selected default spreadsheet preferences.
-8. Troubleshoot errors and maintain application functionality.
-9. Support security and compliance obligations.
+Saving individual users' preferred Google Sheets.
 
-AI Hiring Intelligence does not independently approve, reject, hire, or disqualify candidates.
+The Application is intended to support human decision-making.
 
-Users are responsible for reviewing AI-generated information before making employment-related decisions.
+AI Hiring Intelligence does not independently make hiring, rejection, or employment decisions.
 
-## 4. Google OAuth and Google Sheets Integration
+3. User Registration and Accounts
 
-AI Hiring Intelligence allows users to connect their Google accounts through Google's OAuth authorization process.
+Users may create accounts using the Application's authentication system, which is supported by Supabase.
 
-Google authorization is used to provide features such as:
+Users agree to provide accurate registration information and maintain the confidentiality of their account credentials.
 
-- Creating Google Sheets for candidate analysis results.
-- Selecting an existing spreadsheet.
-- Saving a preferred spreadsheet for future use.
-- Adding candidate analysis records to user-authorized spreadsheets.
-- Managing the Application's Google Sheets connection.
+Users are responsible for activities conducted through their accounts.
 
-The Application accesses Google Sheets only through permissions granted by the user.
+Users must not attempt to access another user's account, application settings, or private information without authorization.
 
-Google OAuth authorization tokens may be stored in encrypted form through Supabase to support authorized spreadsheet operations.
+Suspected unauthorized access or security incidents may be reported to valentina339@gmail.com.
 
-AI Hiring Intelligence does not require users to make their spreadsheets publicly accessible.
+4. Authorized Use of Candidate Information
 
-Users may disconnect their Google accounts through the Application or revoke access through their Google Account security settings.
+Users are responsible for ensuring that they have an appropriate legal basis or authorization to upload, process, and analyze candidate resumes.
 
-Revoking authorization does not automatically remove information previously saved to Google Sheets.
+Users agree to:
 
-### Google API Services User Data Policy
+Handle candidate information responsibly and confidentially.
 
-AI Hiring Intelligence's use and transfer of information received from Google APIs will comply with the Google API Services User Data Policy, including its Limited Use requirements.
+Comply with applicable privacy and employment laws.
 
-Google user data is used to provide and maintain the user-requested Google Sheets functionality.
+Avoid uploading unnecessary sensitive personal information.
 
-We do not sell Google user data or use it for advertising.
+Use candidate analysis results only for legitimate, authorized purposes.
 
-We do not use Google user data to train generalized AI models.
+Maintain appropriate access controls over recruitment information.
 
-## 5. AI Processing Through Google Gemini
+Users must not upload resumes or other personal information obtained unlawfully.
 
-AI Hiring Intelligence uses the Google Gemini API to process resume information and job descriptions.
+5. Artificial Intelligence and Human Review
 
-Uploaded resume information and relevant job requirements may be transmitted to Google's API infrastructure to generate AI-assisted analysis.
+AI Hiring Intelligence uses the Google Gemini API to assist with resume analysis.
 
-The Application does not intentionally use uploaded candidate information to train its own AI models.
+AI-generated assessments may contain inaccuracies, omissions, misinterpretations, or incomplete information.
 
-Processing and retention by Google are governed by the applicable Gemini API terms, privacy policies, and service configurations.
+The Application does not guarantee that generated summaries accurately reflect every qualification or experience described in a resume.
 
-AI-generated summaries may contain errors, omissions, or misinterpretations.
+Users must independently verify relevant candidate information and apply appropriate human judgment.
 
-Users must independently verify relevant information before making employment-related decisions.
+Users must not rely exclusively on AI-generated output when making hiring or employment decisions.
 
-We recommend removing unnecessary sensitive personal information from resumes before uploading them.
+The Application does not guarantee any recruitment outcome.
 
-## 6. Data Storage and Retention
+6. Google OAuth and Google Sheets Integration
 
-AI Hiring Intelligence processes information necessary to provide authentication, resume analysis, and Google Sheets integration.
+AI Hiring Intelligence allows users to connect their personal or organizational Google accounts through Google's OAuth authorization system.
 
-### Account Information
+When a user grants permission, the Application may perform authorized Google Sheets operations, including:
 
-User account information is managed through Supabase.
+Creating spreadsheets for candidate analysis results.
 
-Account records and related preferences may be retained while the account remains active, subject to applicable service-provider policies and legal obligations.
+Accessing spreadsheets selected by the user.
 
-### Uploaded Resumes
+Adding candidate analysis records.
 
-Uploaded PDF resumes are processed during an analysis session.
+Saving a preferred spreadsheet for future use.
 
-The Application does not intentionally maintain a separate permanent repository of uploaded resume documents.
+The Application accesses Google Sheets only within the permissions granted through Google OAuth.
 
-Temporary application-session storage, hosting logs, and service-provider processing or retention may apply.
+Users remain responsible for managing their Google Sheets and controlling who can access the candidate information stored within them.
 
-### AI Analysis Results
+Users can revoke the Application's access through their Google Account security settings.
 
-AI-generated results are displayed through the Application.
+Revoking Google access does not automatically delete information previously saved to Google Sheets.
 
-Users may save analysis results to Google Sheets they select or create.
+The Application's use of Google user data is described in its Privacy Policy and is intended to comply with the Google API Services User Data Policy, including applicable Limited Use requirements.
 
-Saved spreadsheet records remain subject to the spreadsheet owner's management, Google's retention practices, and any applicable backup or deletion policies.
+7. Data Protection and Privacy
 
-### Google Authorization Information
+AI Hiring Intelligence processes account information, uploaded resumes, job descriptions, and analysis results as described in its Privacy Policy.
 
-Encrypted Google authorization tokens and default spreadsheet preferences may be stored through Supabase.
+Users should review the Privacy Policy before uploading candidate information or connecting Google services.
 
-These records support continued access to user-authorized Google Sheets functionality.
+Privacy Policy: https://valentinia-dotcom.github.io/AI-Hiring-Intelligence-System/PRIVACY_POLICY.html
 
-### Technical Logs and Backups
+Users are responsible for obtaining appropriate permissions and complying with applicable data-protection requirements.
 
-Hosting, authentication, and AI service providers may retain operational logs and backup information under their respective policies.
+8. Third-Party Services
 
-### Data Deletion
+The Application depends on external technology providers, including:
 
-Users may request deletion of application-controlled account information by contacting:
+Streamlit Community Cloud for application hosting.
 
-**valentina339@gmail.com**
+Supabase for user authentication and application data.
 
-Deletion requests will be reviewed and handled in accordance with applicable laws and technical limitations.
+Google Gemini API for AI-assisted resume analysis.
 
-Users may manage or delete records in Google Sheets they own or control.
+Google Sheets API for spreadsheet integration.
 
-Disconnecting Google access does not automatically delete spreadsheet information previously created or saved.
+These providers may experience outages, usage restrictions, technical limitations, or changes to their services.
 
-We do not guarantee immediate deletion of information retained in third-party service-provider logs or backups.
+AI Hiring Intelligence is not responsible for independently operating or controlling these third-party platforms.
 
-## 7. Third-Party Services
+Users may also be subject to the applicable terms and policies of those services.
 
-AI Hiring Intelligence uses the following services:
+9. Acceptable Use
 
-**Streamlit Community Cloud:** Hosts the web application and supports user interactions.
+Users must not:
 
-**Supabase:** Provides user authentication, account management, and storage of application preferences and authorization information.
+Use the Application for unlawful activities.
 
-**Google Gemini API:** Processes uploaded resume content and job requirements to produce AI-assisted analysis.
+Upload information without appropriate authorization.
 
-**Google Sheets API:** Supports authorized spreadsheet creation, access, and updates.
+Attempt to compromise the Application's security.
 
-These providers may process data according to their applicable privacy policies, security practices, service agreements, and technical configurations.
+Access another user's information without permission.
 
-Users should review the relevant third-party policies when using the Application.
+Use the Application to distribute malware or malicious content.
 
-## 8. Information Sharing
+Misrepresent AI-generated information as independently verified fact.
 
-AI Hiring Intelligence does not sell candidate resumes, Google account data, or personal information.
+Use the Application in ways that violate applicable employment or anti-discrimination laws.
 
-Information may be transmitted to the service providers identified in this policy when necessary to operate the Application.
+Interfere with or overload the Application's infrastructure.
 
-AI-generated information may be stored in a Google Sheet selected or created by an authorized user.
+We may restrict access where reasonably necessary to address misuse, security risks, or legal obligations.
 
-The spreadsheet owner is responsible for managing sharing permissions and access to those records.
+10. Service Availability
 
-Information may also be disclosed when required by applicable law or a valid legal process.
+AI Hiring Intelligence is provided subject to the availability of its hosting infrastructure and third-party services.
 
-## 9. Data Security
+We do not guarantee uninterrupted access or error-free operation.
 
-AI Hiring Intelligence is designed to use security measures including:
+Functionality may be temporarily unavailable because of:
 
-- Supabase-based account authentication.
-- Google OAuth authorization.
-- Encrypted storage of Google refresh tokens.
-- HTTPS communication with supported services.
-- Application access controls.
-- Restricted handling of API keys and application secrets.
+Gemini API rate limits or service overload.
 
-No online system is completely secure.
+Google authentication or authorization issues.
 
-Users are responsible for protecting their account credentials and controlling access to their spreadsheets.
+Google Sheets API limitations.
 
-## 10. User Rights and Choices
+Streamlit or Supabase service interruptions.
 
-Subject to applicable laws, users may request access to, correction of, or deletion of personal information controlled by the Application.
+Maintenance, software updates, or technical failures.
 
-Users may:
+We may modify, suspend, or discontinue application features when reasonably necessary.
 
-- Request deletion of their application account.
-- Disconnect their Google account.
-- Revoke Google authorization permissions.
-- Change their preferred Google Sheet.
-- Manage records saved in spreadsheets they control.
-- Contact the operator about privacy-related concerns.
+11. Fees and Usage Limits
 
-Requests may be submitted to:
+AI Hiring Intelligence is currently offered without a subscription fee charged by its developer.
 
-**valentina339@gmail.com**
+The Application may be subject to technical limits imposed by its hosting, AI, authentication, and Google integration providers.
 
-Individuals whose information appears in uploaded resumes may also contact the operator regarding personal information processed through the Application. Some records may be controlled by the user or organization that uploaded the information.
+If paid application features are introduced in the future, applicable pricing and conditions will be disclosed before users are charged.
 
-## 11. Candidate Privacy and Responsible Use
+Users are responsible for any separate charges arising from third-party services they independently choose to use.
 
-Users must ensure they have an appropriate legal basis or authorization to process candidate information.
+12. Intellectual Property
 
-Users should not upload resumes containing unnecessary sensitive information.
+The original software, interface, branding, documentation, and other original materials associated with AI Hiring Intelligence are owned by Valentinia Selchezstintinia or their respective rights holders, subject to any applicable open-source and third-party licenses.
 
-AI-generated results are intended to provide supporting evidence for human reviewers, not automatic employment decisions.
+Users retain their applicable rights to resumes, job descriptions, and other information they lawfully submit.
 
-Recruiters and organizations are responsible for complying with applicable employment, privacy, anti-discrimination, and data-protection laws.
+Nothing in these Terms transfers ownership of candidate information to the Application's developer.
 
-## 12. Children's Privacy
+13. Disclaimer of Warranties
 
-AI Hiring Intelligence is intended for professional recruitment and employment-related activities.
+The Application is provided on an "as available" basis to the extent permitted by applicable law.
 
-The Application is not directed toward children under 18.
+We do not guarantee:
 
-Users should not upload children's personal information without an appropriate lawful basis or authorization.
+The accuracy or completeness of AI-generated analysis.
 
-## 13. International Data Processing
+The availability of any particular Gemini model.
 
-Personal information may be processed in countries where the Application's hosting, authentication, and AI service providers operate.
+Uninterrupted application functionality.
 
-Such processing may be subject to applicable international data-protection requirements.
+Successful Google Sheets integration in every circumstance.
 
-Users and organizations are responsible for ensuring appropriate safeguards where required by law.
+Any specific recruitment or hiring outcome.
 
-## 14. Changes to This Privacy Policy
+Users are responsible for independently verifying AI-generated information before making decisions.
 
-We may revise this Privacy Policy to reflect changes in application functionality, data-processing practices, security requirements, service providers, or applicable laws.
+14. Limitation of Liability
 
-Updates will be published on the Application's publicly accessible privacy policy page.
+To the maximum extent permitted by applicable law, Valentinia Selchezstintinia shall not be liable for indirect, incidental, consequential, or special damages arising from use of the Application.
 
-The effective date will be updated when material changes are made.
+This includes losses relating to inaccurate AI-generated information, unauthorized user conduct, third-party service interruptions, or employment decisions made by users.
 
-## 15. Contact Information
+Nothing in these Terms excludes or limits liability that cannot lawfully be excluded or limited.
 
-For questions about privacy, data handling, account information, or deletion requests, please contact:
+15. Account Suspension and Termination
 
-**Application:** AI Hiring Intelligence  
-**Developer and Operator:** Valentinia Selchezstintinia  
-**Email:** valentina339@gmail.com  
-**Website:** https://ai-hiring-intelligence-system.streamlit.app/
+Users may stop using the Application at any time.
 
----
+We may suspend or restrict access where reasonably necessary to address:
 
-*Last updated: October 15, 2026*
+Violations of these Terms.
+
+Unauthorized access attempts.
+
+Security threats.
+
+Fraudulent or unlawful activities.
+
+Applicable legal requirements.
+
+Users may request deletion of application-controlled account information by contacting valentina339@gmail.com.
+
+Account deletion does not automatically delete information already stored in Google Sheets controlled by users.
+
+16. International Use
+
+AI Hiring Intelligence may be accessed from different countries.
+
+Users are responsible for complying with laws and regulations applicable to their location and intended use, including privacy, employment, and data-protection requirements.
+
+17. Changes to These Terms
+
+We may update these Terms to reflect changes in application functionality, third-party services, legal requirements, or security practices.
+
+Updated Terms will be published on the Application's publicly accessible Terms of Service page.
+
+Continued use after revised Terms become effective constitutes acceptance to the extent permitted by applicable law.
+
+18. Contact Information
+
+For questions, concerns, or requests regarding these Terms of Service, contact:
+
+Developer and Operator: Valentinia Selchezstintinia
+Application: AI Hiring Intelligence
+Email: valentina339@gmail.com
+Website: https://ai-hiring-intelligence-system.streamlit.app/
+
+Last updated: October 15, 2026
