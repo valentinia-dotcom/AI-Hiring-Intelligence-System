@@ -542,27 +542,24 @@ def render_brand():
  
 
 def render_hero():
-    """Display a branded welcome section."""
+    """Display the Midnight Aurora welcome panel."""
 
     st.markdown(
         """
-        <section class="aurora-hero">
-            <div class="aurora-eyebrow">
-                POWERED BY GOOGLE GEMINI
-            </div>
-
-            <h2>
-                Turn Resumes Into Clear,
-                Job-Relevant Insights
-            </h2>
-
-            <p>
-                Analyze PDF resumes using AI, review
-                job-related evidence, securely save
-                candidate history, and export Excel reports.
-                Built to support informed human review.
-            </p>
-        </section>
+<section class="aurora-hero">
+    <div class="aurora-eyebrow">POWERED BY GOOGLE GEMINI</div>
+    <h2>Turn Resumes Into Clear, Job-Relevant Insights</h2>
+    <p>
+        Analyze PDF resumes using AI, review job-related
+        evidence, securely save candidate history,
+        and export Excel reports.
+        Built to support informed human review.
+    </p>
+</section>
         """,
         unsafe_allow_html=True,
     )
+
+      
+
+
