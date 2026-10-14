@@ -1,14 +1,21 @@
+
+
 """
 AI Hiring Intelligence System
 Midnight Aurora — Frontend Theme
+
 Visual styling only.
 Does not modify Gemini, Supabase, authentication,
 candidate history, or Excel exports.
 """
 
 import base64
+from pathlib import Path
 from textwrap import dedent
+
 import streamlit as st
+
+
 COLORS = {
     "background": "#070D1D",
     "surface": "#101A33",
@@ -24,53 +31,19 @@ COLORS = {
 
 
 # --------------------------------------------------
-# ORIGINAL GEOMETRIC BRAND LOGO
+# OFFICIAL LOGO (the PNG already uploaded to GitHub)
 # --------------------------------------------------
-
-LOGO_SVG = """
-<svg xmlns="http://www.w3.org/2000/svg"
-     viewBox="0 0 120 120"
-     width="120" height="120">
-
-  <defs>
-    <linearGradient id="front"
-        x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#48B9FF"/>
-      <stop offset="100%" stop-color="#7958F8"/>
-    </linearGradient>
-
-    <linearGradient id="side"
-        x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#A76CFF"/>
-      <stop offset="100%" stop-color="#5141CD"/>
-    </linearGradient>
-  </defs>
-
-  <polygon points="60,5 94,55 60,115 26,55"
-           fill="#0E1836"/>
-
-  <polygon points="60,5 60,60 26,55"
-           fill="url(#front)"/>
-
-  <polygon points="60,5 94,55 60,60"
-           fill="#A36BFF"/>
-
-  <polygon points="26,55 60,60 60,115"
-           fill="#2B69D8"/>
-
-  <polygon points="94,55 60,115 60,60"
-           fill="url(#side)"/>
-
-</svg>
-"""
+# Keep this filename unchanged unless the file is renamed in GitHub.
+LOGO_FILE = Path(__file__).resolve().parent / "AI Hiring Intelligence Logo (1).png"
 
 
 def logo_data_uri():
-    encoded = base64.b64encode(
-        LOGO_SVG.encode("utf-8")
-    ).decode("ascii")
-
-    return f"data:image/svg+xml;base64,{encoded}"
+    """Load the existing repository PNG; provide a readable fallback if missing."""
+    try:
+        image_bytes = LOGO_FILE.read_bytes()
+        return "data:image/png;base64," + base64.b64encode(image_bytes).decode("ascii")
+    except OSError:
+        return None
 
 
 # --------------------------------------------------
@@ -322,14 +295,16 @@ def apply_theme():
         margin-bottom: 1.5rem;
     }
 
+    /* Show the icon area of the original wide PNG, hiding its dark wordmark.
+       No extra logo image or image-processing dependency is required. */
     .aurora-brand-logo {
-        width: 58px;
-        height: 58px;
+        width: 72px;
+        height: 76px;
         flex-shrink: 0;
-        filter:
-            drop-shadow(
-                0 0 14px rgba(120,86,247,0.25)
-            );
+        background-size: 185px auto;
+        background-repeat: no-repeat;
+        background-position: -1px -36px;
+        filter: drop-shadow(0 0 10px rgba(56,168,255,0.24));
     }
 
     .aurora-brand-name {
@@ -410,7 +385,7 @@ def apply_theme():
 
     @media (max-width: 768px) {
         .block-container {
-            padding: 1rem 0.8rem 3rem;
+            padding: 3rem 0.8rem 3rem;
         }
 
         .aurora-hero {
@@ -419,8 +394,10 @@ def apply_theme():
         }
 
         .aurora-brand-logo {
-            width: 46px;
-            height: 46px;
+            width: 58px;
+            height: 62px;
+            background-size: 150px auto;
+            background-position: -1px -29px;
         }
 
         [data-testid="stForm"] {
@@ -447,29 +424,24 @@ def apply_theme():
 # --------------------------------------------------
 
 def render_brand():
-    """Display the geometric logo and brand heading."""
-
+    """Display the official uploaded PNG icon and accessible Aurora brand title."""
     logo = logo_data_uri()
-
-    html = f"""
-    <div class="aurora-brand">
-        <img
-            class="aurora-brand-logo"
-            src="{logo}"
-            alt="AI Hiring Intelligence geometric logo"
-        />
-        <div>
-            <div class="aurora-brand-name">
-                AI Hiring Intelligence System
-            </div>
-            <div class="aurora-brand-subtitle">
-                Intelligent resume evidence analysis
-            </div>
-        </div>
-    </div>
-    """
-
-    st.markdown(dedent(html), unsafe_allow_html=True)
+    # CSS clips the icon from the original combined icon-and-wordmark PNG.
+    # Display the title separately so its lettering stays legible on navy.
+    icon = (
+        f'<div class="aurora-brand-logo" role="img" '
+        f'aria-label="AI Hiring Intelligence logo icon" '
+        f'style="background-image: url(\'{logo}\');"></div>'
+        if logo else '<div aria-hidden="true" style="font-size:2.4rem">◈</div>'
+    )
+    html = (
+        '<div class="aurora-brand">'
+        + icon
+        + '<div><div class="aurora-brand-name">AI Hiring Intelligence System</div>'
+        '<div class="aurora-brand-subtitle">Intelligent resume evidence analysis</div>'
+        '</div></div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
 
 
 # --------------------------------------------------
