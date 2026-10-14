@@ -167,7 +167,7 @@ def evaluate(client, job, content):
 uid = user_id()
 
 if not uid:
-    login_tab, register_tab = st.tabs(["Sign in", "Create account"])
+    st.markdown("""<style>     div[data-testid="stTabs"] {         max-width: 620px;         margin-left: auto;         margin-right: auto;     }     </style>     """,     unsafe_allow_html=True, )
     with login_tab:
         with st.form("login"):
             email = st.text_input("Email address")
