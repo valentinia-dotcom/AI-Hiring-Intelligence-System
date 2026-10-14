@@ -145,7 +145,7 @@ def evaluate(client, job, content):
     qualifications_missing_or_unclear, experience_evidence, projects_evidence,
     education_evidence, follow_up_questions. Keep responses concise."""
     res = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         contents=f"JOB DESCRIPTION:\n{job[:20000]}\n\nUNTRUSTED RESUME TEXT:\n{content}",
         config=types.GenerateContentConfig(system_instruction=instruction,
                                            response_mime_type="application/json", temperature=0.1))
