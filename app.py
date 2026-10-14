@@ -1,5 +1,6 @@
 """AI Hiring Intelligence: job-relevant evidence review, per-user Sheets integration."""
 import json
+import hashlib
 import re
 import secrets
 import uuid
@@ -145,7 +146,7 @@ def evaluate(client, job, content):
     qualifications_missing_or_unclear, experience_evidence, projects_evidence,
     education_evidence, follow_up_questions. Keep responses concise."""
     res = client.models.generate_content(
-        model="gemini-3.5-flash-lite",
+        model="gemini-2.5-flash",
         contents=f"JOB DESCRIPTION:\n{job[:20000]}\n\nUNTRUSTED RESUME TEXT:\n{content}",
         config=types.GenerateContentConfig(system_instruction=instruction,
                                            response_mime_type="application/json", temperature=0.1))
@@ -322,41 +323,120 @@ else:
             st.error(f"Unable to start Google authorization: {str(exc)[:200]}")
 
 st.divider()
-with st.form("resumes"):
-    position = st.text_input("Job title / position")
-    jd = st.text_area("Job description", height=165)
-    uploads = st.file_uploader("Upload resumes (PDF, up to 20)", accept_multiple_files=True, type=["pdf"])
-    run = st.form_submit_button("Analyze resumes", type="primary")
 
-if run:
+# Submit once, then rerun to immediately show a disabled form while analysis runs.
+if "analysis_status" not in st.session_state:
+    st.session_state.analysis_status = "idle"
+busy = st.session_state.analysis_status in ("queued", "running")
+with st.form("resumes"):
+    position = st.text_input("Job title / position", disabled=busy)
+    jd = st.text_area("Job description", height=165, disabled=busy)
+    uploads = st.file_uploader(
+        "Upload resumes (PDF, up to 20)",
+        accept_multiple_files=True,
+        type=["pdf"],
+        disabled=busy,
+    )
+    run = st.form_submit_button(
+        "Analyzing resumes..." if busy else "Analyze resumes",
+        type="primary", disabled=busy,
+    )
+
+if run and not busy:
     if not jd.strip() or not uploads:
         st.error("Enter a job description and upload at least one PDF.")
     elif len(uploads) > MAX_FILES or any(f.size > MAX_BYTES for f in uploads):
         st.error("Up to 20 PDFs, 10 MB per file.")
     else:
-        model = genai.Client(api_key=setting("GEMINI_API_KEY"))
+        # A PDF uploaded twice can have a different filename. Hash its bytes
+        # so exact duplicates are analyzed only once and do not consume quota.
+        unique_files = []
+        seen_hashes = {}
+        duplicate_names = []
+        for upload in uploads:
+            content = upload.getvalue()
+            fingerprint = hashlib.sha256(content).hexdigest()
+            if fingerprint in seen_hashes:
+                duplicate_names.append((upload.name, seen_hashes[fingerprint]))
+            else:
+                seen_hashes[fingerprint] = upload.name
+                unique_files.append((upload.name, content))
+        if duplicate_names:
+            st.session_state.duplicate_notice = duplicate_names
+        else:
+            st.session_state.pop("duplicate_notice", None)
+        # Store only unique PDFs, keeping progress based on actual API calls.
+        st.session_state.pending_analysis = {
+            "owner": uid, "position": position, "jd": jd,
+            "files": unique_files,
+        }
+        st.session_state.analysis_status = "queued"
+        st.rerun()
+
+if st.session_state.analysis_status == "queued":
+    task = st.session_state.get("pending_analysis")
+    if not task or task.get("owner") != uid:
+        st.session_state.analysis_status = "idle"
+        st.session_state.pop("pending_analysis", None)
+    else:
+        st.session_state.analysis_status = "running"
         run_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         records, errors = [], []
-        bar = st.progress(0)
-        for i, uploaded in enumerate(uploads):
-            try:
-                content = extract_pdf(uploaded)
-                if len(content) < 50:
-                    raise ValueError("Insufficient text. Scanned PDFs require OCR.")
-                item = evaluate(model, jd, content)
-                records.append(dict(zip(HEADERS, [timestamp, run_id, position, uploaded.name,
-                    item["candidate_name"], item["qualifications_found"],
-                    item["qualifications_missing_or_unclear"], item["experience_evidence"],
-                    item["projects_evidence"], item["education_evidence"], item["follow_up_questions"]])))
-            except Exception as exc:
-                errors.append(f"{uploaded.name}: {type(exc).__name__}: {str(exc)[:150]}")
-            bar.progress((i + 1) / len(uploads))
-        st.session_state.analysis = {"owner": uid, "id": run_id, "rows": records, "errors": errors}
-        st.session_state.pop("saved_run", None)
+        files = task["files"]
+        total = len(files)
+        bar = st.progress(0, text=f"Analyzing resumes: 0% (0/{total})")
+        status = st.empty()
+        try:
+            client = genai.Client(api_key=setting("GEMINI_API_KEY"))
+            for i, (filename, pdf_bytes) in enumerate(files):
+                status.caption(f"Processing resume {i + 1} of {total}: {filename}")
+                try:
+                    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+                        if doc.page_count > 50:
+                            raise ValueError("PDF exceeds 50 pages.")
+                        content = "\n".join(page.get_text(sort=True) for page in doc).strip()[:60000]
+                    if len(content) < 50:
+                        raise ValueError("Insufficient text. Scanned PDFs require OCR.")
+                    item = evaluate(client, task["jd"], content)
+                    records.append(dict(zip(HEADERS, [
+                        timestamp, run_id, task["position"], filename,
+                        item["candidate_name"], item["qualifications_found"],
+                        item["qualifications_missing_or_unclear"],
+                        item["experience_evidence"], item["projects_evidence"],
+                        item["education_evidence"], item["follow_up_questions"],
+                    ])))
+                except Exception as exc:
+                    errors.append(f"{filename}: {type(exc).__name__}: {str(exc)[:150]}")
+                completed = i + 1
+                percentage = round(100 * completed / total)
+                bar.progress(completed / total, text=f"Analyzing resumes: {percentage}% ({completed}/{total})")
+            st.session_state.analysis = {
+                "owner": uid, "id": run_id, "rows": records, "errors": errors,
+            }
+            st.session_state.pop("saved_run", None)
+        except Exception as exc:
+            st.error(f"Unable to start analysis: {type(exc).__name__}: {str(exc)[:180]}")
+        finally:
+            st.session_state.pop("pending_analysis", None)
+            st.session_state.analysis_status = "idle"
+            status.empty()
+            st.rerun()
+
+if st.session_state.get("duplicate_notice"):
+    duplicates = st.session_state["duplicate_notice"]
+    st.info(
+        f"Skipped {len(duplicates)} duplicate PDF upload(s) to avoid repeated Gemini requests. "
+        "Each identical PDF is analyzed once per batch."
+    )
+    with st.expander("View skipped duplicates"):
+        for duplicate_name, original_name in duplicates:
+            st.write(f"Skipped **{duplicate_name}** (identical to **{original_name}**)")
 
 analysis = st.session_state.get("analysis")
 if analysis and analysis.get("owner") == uid:
+    if analysis["rows"] and not analysis["errors"]:
+        st.success(f"Analysis complete: {len(analysis['rows'])} resume(s) processed.")
     for msg in analysis["errors"]:
         st.warning(msg)
     if analysis["rows"]:
