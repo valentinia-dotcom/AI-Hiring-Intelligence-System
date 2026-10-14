@@ -11,12 +11,11 @@ from google import genai
 from google.genai import types
 from supabase import create_client
 
-st.set_page_config(page_title="AI Hiring Intelligence", page_icon="📋", layout="wide")
+st.set_page_config(page_title="AI Hiring Intelligence", page_icon="💠", layout="wide")
 from theme import apply_theme, render_brand, render_hero
 apply_theme()
 render_brand()
 st.caption("Job-relevant resume evidence for human reviewers — not automated hiring decisions")
-st.warning("Resumes contain sensitive personal information. Obtain appropriate permission, restrict access, and independently verify AI summaries.")
 
 HEADERS = ["Analysis time (UTC)", "Position", "Resume file", "Candidate name (if stated)",
            "Required qualifications found", "Required qualifications unclear/missing", "Relevant experience evidence",
@@ -129,10 +128,9 @@ def save_to_supabase(uid, analysis):
         payload.append(item)
     if not payload:
         return 0
-    # The unique (user_id, analysis_id, resume_file) index prevents repeated saves.
-    supa().table("candidate_results").upsert(
-        payload, on_conflict="user_id,analysis_id,resume_file"
-    ).execute()
+    # The unique (user_id, analysis_id, resume_file) index blocks repeat saves.
+    # INSERT respects the existing RLS INSERT policy without requiring UPDATE privileges.
+    supa().table("candidate_results").insert(payload).execute()
     return len(payload)
 
 
@@ -169,6 +167,7 @@ uid = user_id()
 
 if not uid:
     render_hero()
+    st.warning("Resumes contain sensitive personal information. Obtain appropriate permission, restrict access, and independently verify AI summaries.")
     st.markdown(
         """
         <style>
@@ -211,57 +210,65 @@ if not uid:
                     st.error(f"Registration failed: {str(exc)[:170]}")
     st.stop()
 
+
+# -----------------------------------------------------------------------------
+# WORKSPACE NAVIGATION — appearance changes only, not backend data processing.
+# -----------------------------------------------------------------------------
 with st.sidebar:
+    st.markdown("### ◈ Workspace")
+    st.caption("Private AI-assisted resume evidence")
+    if "next_page" in st.session_state:
+        st.session_state.workspace_page = st.session_state.pop("next_page")
+    page = st.radio(
+        "Navigate",
+        ["New Analysis", "Analysis Results", "Saved History"],
+        key="workspace_page",
+        label_visibility="collapsed",
+    )
+    st.divider()
     st.success("Signed in")
-    if st.button("Sign out"):
+    if st.button("Sign out", use_container_width=True):
         supa().auth.sign_out()
-        for k in ["analysis", "saved_run", "pending_analysis", "duplicate_notice", "analysis_status"]:
-            st.session_state.pop(k, None)
+        for key in ["analysis", "saved_run", "pending_analysis", "duplicate_notice", "analysis_status", "supa", "workspace_page"]:
+            st.session_state.pop(key, None)
         st.rerun()
 
-st.subheader("My candidate results")
-st.caption("Results are stored in your Supabase account, not in Google Sheets. Only your signed-in user can access them, subject to database Row Level Security.")
-try:
-    history = saved_results(uid)
-except Exception as exc:
-    st.error(f"Could not load saved results: {type(exc).__name__}. Confirm the candidate_results table and RLS policies exist.")
-    history = []
-if history:
-    history_df = pd.DataFrame(displayed_saved_rows(history), columns=HEADERS)
-    st.write(f"**Saved candidate records: {len(history_df)}**")
-    with st.expander("View saved candidate results", expanded=False):
-        st.dataframe(history_df, hide_index=True, use_container_width=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.download_button("Download all saved results (Excel)", excel_bytes(history_df),
-                           file_name="ai_hiring_saved_results.xlsx",
-                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    with col2:
-        st.download_button("Download all saved results (CSV)",
-                           safe_export_df(history_df).to_csv(index=False).encode("utf-8-sig"),
-                           file_name="ai_hiring_saved_results.csv", mime="text/csv")
-else:
-    st.info("No saved results yet. Analyze resumes below, then click Save results to my account.")
-
-st.divider()
-
-# Submit once, then rerun to immediately show a disabled form while analysis runs.
+# -----------------------------------------------------------------------------
+# NEW ANALYSIS
+# -----------------------------------------------------------------------------
 if "analysis_status" not in st.session_state:
     st.session_state.analysis_status = "idle"
 busy = st.session_state.analysis_status in ("queued", "running")
-with st.form("resumes"):
-    position = st.text_input("Job title / position", disabled=busy)
-    jd = st.text_area("Job description", height=165, disabled=busy)
-    uploads = st.file_uploader(
-        "Upload resumes (PDF, up to 20)",
-        accept_multiple_files=True,
-        type=["pdf"],
-        disabled=busy,
-    )
-    run = st.form_submit_button(
-        "Analyzing resumes..." if busy else "Analyze resumes",
-        type="primary", disabled=busy,
-    )
+
+if page == "New Analysis":
+    st.subheader("New Resume Analysis")
+    st.caption("Enter the job requirements, upload text-readable PDF resumes, and review factual job-relevant evidence.")
+    # Form split into columns so there is still only one Analyze action.
+    with st.form("resumes"):
+        left, right = st.columns([1, 1], gap="large")
+        with left:
+            st.markdown("#### 01 · Job details")
+            position = st.text_input("Job title / position", disabled=busy)
+            jd = st.text_area("Job description", height=218, disabled=busy)
+        with right:
+            st.markdown("#### 02 · Upload resumes")
+            uploads = st.file_uploader(
+                "Upload resumes (PDF, up to 20)", accept_multiple_files=True,
+                type=["pdf"], disabled=busy,
+            )
+            st.caption("Up to 20 files · 10 MB each · Text-based PDF only")
+        run = st.form_submit_button(
+            "Analyzing resumes..." if busy else "✦ Analyze resumes",
+            type="primary", disabled=busy, use_container_width=True,
+        )
+    with st.expander("How the review works"):
+        st.write("Gemini extracts job-related evidence; it does not rank candidates or make hiring decisions. Check every summary against the original resumes.")
+        st.warning("Obtain appropriate permission to process resumes. Resume text is sent to the configured Gemini API.")
+else:
+    run = False
+    position = ""
+    jd = ""
+    uploads = []
 
 if run and not busy:
     if not jd.strip() or not uploads:
@@ -269,8 +276,6 @@ if run and not busy:
     elif len(uploads) > MAX_FILES or any(f.size > MAX_BYTES for f in uploads):
         st.error("Up to 20 PDFs, 10 MB per file.")
     else:
-        # A PDF uploaded twice can have a different filename. Hash its bytes
-        # so exact duplicates are analyzed only once and do not consume quota.
         unique_files = []
         seen_hashes = {}
         duplicate_names = []
@@ -286,7 +291,6 @@ if run and not busy:
             st.session_state.duplicate_notice = duplicate_names
         else:
             st.session_state.pop("duplicate_notice", None)
-        # Store only unique PDFs, keeping progress based on actual API calls.
         st.session_state.pending_analysis = {
             "owner": uid, "position": position, "jd": jd,
             "files": unique_files,
@@ -333,9 +337,12 @@ if st.session_state.analysis_status == "queued":
                 percentage = round(100 * completed / total)
                 bar.progress(completed / total, text=f"Analyzing resumes: {percentage}% ({completed}/{total})")
             st.session_state.analysis = {
-                "owner": uid, "id": run_id, "timestamp": datetime.now(timezone.utc).isoformat(), "rows": records, "errors": errors,
+                "owner": uid, "id": run_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "rows": records, "errors": errors,
             }
             st.session_state.pop("saved_run", None)
+            st.session_state.next_page = "Analysis Results"
         except Exception as exc:
             st.error(f"Unable to start analysis: {type(exc).__name__}: {str(exc)[:180]}")
         finally:
@@ -344,45 +351,97 @@ if st.session_state.analysis_status == "queued":
             status.empty()
             st.rerun()
 
-if st.session_state.get("duplicate_notice"):
-    duplicates = st.session_state["duplicate_notice"]
-    st.info(
-        f"Skipped {len(duplicates)} duplicate PDF upload(s) to avoid repeated Gemini requests. "
-        "Each identical PDF is analyzed once per batch."
-    )
-    with st.expander("View skipped duplicates"):
-        for duplicate_name, original_name in duplicates:
-            st.write(f"Skipped **{duplicate_name}** (identical to **{original_name}**)")
+# -----------------------------------------------------------------------------
+# ANALYSIS RESULTS (session data; optional permanent Supabase save)
+# -----------------------------------------------------------------------------
+if page == "Analysis Results":
+    st.subheader("Analysis Results")
+    st.caption("Evidence summaries are for human review; they are not suitability scores or hiring decisions.")
+    analysis = st.session_state.get("analysis")
+    if not analysis or analysis.get("owner") != uid:
+        st.info("No analysis in this session yet. Choose New Analysis to process resumes.")
+    else:
+        if analysis["rows"]:
+            st.success(f"Analysis complete: {len(analysis['rows'])} resume(s) processed successfully.")
+        for msg in analysis["errors"]:
+            st.warning(msg)
+        if st.session_state.get("duplicate_notice"):
+            duplicates = st.session_state["duplicate_notice"]
+            st.info(f"Skipped {len(duplicates)} duplicate PDF upload(s); identical PDFs are analyzed once per batch.")
+            with st.expander("See skipped duplicates"):
+                for duplicate_name, original_name in duplicates:
+                    st.write(f"Skipped **{duplicate_name}** (same content as **{original_name}**)")
+        if analysis["rows"]:
+            df = pd.DataFrame(analysis["rows"], columns=HEADERS)
+            m1, m2 = st.columns(2)
+            m1.metric("Resumes analyzed", len(df))
+            m2.metric("Files with errors", len(analysis["errors"]))
+            st.markdown("#### Candidate evidence")
+            st.dataframe(df, hide_index=True, use_container_width=True)
+            action1, action2 = st.columns(2)
+            with action1:
+                st.download_button(
+                    "Download Excel", excel_bytes(df),
+                    file_name="candidate_evidence.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+            with action2:
+                st.download_button(
+                    "Download CSV",
+                    safe_export_df(df).to_csv(index=False).encode("utf-8-sig"),
+                    file_name="candidate_evidence.csv", mime="text/csv",
+                    use_container_width=True,
+                )
+            if st.session_state.get("saved_run") == analysis["id"]:
+                st.success("These results have been saved to your account.")
+            elif st.button("Save results to my account", type="primary", use_container_width=True):
+                try:
+                    count = save_to_supabase(uid, analysis)
+                    st.session_state.saved_run = analysis["id"]
+                    st.success(f"Saved {count} candidate result(s) privately to Supabase.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Save failed: {type(exc).__name__}: {str(exc)[:230]}")
+        else:
+            st.info("No resumes were successfully analyzed. Check the errors above and retry.")
 
-analysis = st.session_state.get("analysis")
-if analysis and analysis.get("owner") == uid:
-    if analysis["rows"] and not analysis["errors"]:
-        st.success(f"Analysis complete: {len(analysis['rows'])} resume(s) processed.")
-    for msg in analysis["errors"]:
-        st.warning(msg)
-    if analysis["rows"]:
-        df = pd.DataFrame(analysis["rows"])
-        st.subheader(f"Candidate evidence ({len(df)})")
-        st.dataframe(df, hide_index=True, use_container_width=True)
-        cols = st.columns(2)
-        with cols[0]:
-            st.download_button("Download current results (Excel)", excel_bytes(df),
-                               file_name="candidate_evidence.xlsx",
-                               mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        with cols[1]:
-            st.download_button("Download current results (CSV)",
-                               safe_export_df(df).to_csv(index=False).encode("utf-8-sig"),
-                               file_name="candidate_evidence.csv", mime="text/csv")
-        st.caption("AI summaries require source verification and human review; they are not rankings or hiring decisions.")
-        if st.session_state.get("saved_run") == analysis["id"]:
-            st.success("This analysis was saved to your account. Repeated saves are disabled.")
-        elif st.button("Save results to my account", type="primary"):
-            try:
-                count = save_to_supabase(uid, analysis)
-                st.session_state.saved_run = analysis["id"]
-                st.success(f"Saved {count} candidate result(s) privately to Supabase.")
-                st.rerun()
-            except Exception as exc:
-                st.error(f"Save failed: {type(exc).__name__}: {str(exc)[:230]}")
-
-
+# -----------------------------------------------------------------------------
+# SAVED HISTORY — survives browser close and logout
+# -----------------------------------------------------------------------------
+if page == "Saved History":
+    st.subheader("Saved Candidate History")
+    st.caption("Your previously saved evidence records are retrieved from Supabase and protected by Row Level Security.")
+    try:
+        history = saved_results(uid)
+    except Exception as exc:
+        st.error("Could not load saved results. Check the candidate_results table and its RLS policies.")
+        history = []
+    if not history:
+        st.info("No saved results yet. Analyze resumes, then save the results to your account.")
+    else:
+        history_df = pd.DataFrame(displayed_saved_rows(history), columns=HEADERS)
+        unique_runs = len({str(row.get("analysis_id")) for row in history})
+        unique_positions = len({row.get("position") for row in history if row.get("position")})
+        a, b, c = st.columns(3)
+        a.metric("Saved candidates", len(history_df))
+        b.metric("Analysis runs", unique_runs)
+        c.metric("Positions reviewed", unique_positions)
+        st.markdown("#### Candidate records")
+        st.dataframe(history_df, hide_index=True, use_container_width=True)
+        left, right = st.columns(2)
+        with left:
+            st.download_button(
+                "Download history · Excel", excel_bytes(history_df),
+                file_name="ai_hiring_saved_results.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        with right:
+            st.download_button(
+                "Download history · CSV",
+                safe_export_df(history_df).to_csv(index=False).encode("utf-8-sig"),
+                file_name="ai_hiring_saved_results.csv", mime="text/csv",
+                use_container_width=True,
+            )
+        st.caption("Showing the most recent 1,000 saved candidate records.")
