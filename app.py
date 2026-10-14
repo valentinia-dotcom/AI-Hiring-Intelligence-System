@@ -14,7 +14,7 @@ from supabase import create_client
 st.set_page_config(page_title="AI Hiring Intelligence", page_icon="📋", layout="wide")
 from theme import apply_theme, render_brand
 apply_theme()
-st.title("📋 AI Hiring Intelligence")
+render_brand()
 st.caption("Job-relevant resume evidence for human reviewers — not automated hiring decisions")
 st.warning("Resumes contain sensitive personal information. Obtain appropriate permission, restrict access, and independently verify AI summaries.")
 
