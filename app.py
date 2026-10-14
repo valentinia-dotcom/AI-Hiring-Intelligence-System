@@ -162,6 +162,41 @@ def evaluate(client, job, content):
     return {key: str(data.get(key) or "Not stated") for key in keys}
 
 
+def render_dashboard_overview(uid):
+    """Display account-specific overview based on the latest 1,000 saved records."""
+    st.markdown("### Dashboard Overview")
+    st.caption("Your saved candidate evidence at a glance · UTC timestamps")
+
+    try:
+        records = saved_results(uid)
+    except Exception:
+        st.warning("Dashboard statistics are temporarily unavailable. Please check Saved History later.")
+        return
+
+    candidate_count = len(records)
+    positions = {str(r.get("position")).strip().casefold()
+                 for r in records if r.get("position") and str(r.get("position")).strip()}
+    runs = {str(r.get("analysis_id")) for r in records if r.get("analysis_id")}
+    latest = "No activity yet"
+    if records:
+        raw_date = records[0].get("analyzed_at")
+        if raw_date:
+            try:
+                parsed = datetime.fromisoformat(str(raw_date).replace("Z", "+00:00"))
+                latest = parsed.astimezone(timezone.utc).strftime("%d %b %Y")
+            except (ValueError, TypeError, OverflowError):
+                latest = "Date unavailable"
+
+    col1, col2, col3, col4 = st.columns(4, gap="small")
+    col1.metric("Saved candidate records", candidate_count)
+    col2.metric("Job positions", len(positions))
+    col3.metric("Analysis runs", len(runs))
+    col4.metric("Latest saved activity", latest)
+
+    st.caption("Overview reflects the most recent 1,000 saved records in your account. "
+               "Unsaved analyses are not included; a record is not necessarily a unique person.")
+
+
 uid = user_id()
 
 
@@ -241,6 +276,8 @@ if "analysis_status" not in st.session_state:
 busy = st.session_state.analysis_status in ("queued", "running")
 
 if page == "New Analysis":
+    render_dashboard_overview(uid)
+    st.divider()
     st.subheader("New Resume Analysis")
     st.caption("Enter the job requirements, upload text-readable PDF resumes, and review factual job-relevant evidence.")
     # Form split into columns so there is still only one Analyze action.
@@ -445,3 +482,4 @@ if page == "Saved History":
                 use_container_width=True,
             )
         st.caption("Showing the most recent 1,000 saved candidate records.")
+               
